@@ -64,6 +64,7 @@ int mwifiex_wait_queue_complete(struct mwifiex_adapter *adapter,
 					  *(cmd_queued->condition));
 	if (status) {
 		dev_err(adapter->dev, "cmd_wait_q terminated: %d\n", status);
+		mwifiex_cancel_all_pending_cmd(adapter);
 		return status;
 	}
 
@@ -519,8 +520,9 @@ int mwifiex_enable_hs(struct mwifiex_adapter *adapter)
 		return false;
 	}
 
-	if (wait_event_interruptible(adapter->hs_activate_wait_q,
-				     adapter->hs_activate_wait_q_woken)) {
+	if (wait_event_interruptible_timeout(adapter->hs_activate_wait_q,
+					     adapter->hs_activate_wait_q_woken,
+					     (10 * HZ)) <= 0) {
 		dev_err(adapter->dev, "hs_activate_wait_q terminated\n");
 		return false;
 	}
