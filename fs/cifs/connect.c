@@ -1596,6 +1596,7 @@ cifs_parse_mount_options(const char *mountdata, const char *devname,
 			 * Check if this is a case where the  password
 			 * starts with a delimiter
 			 */
+			kfree(vol->password);
 			tmp_end = strchr(data, '=');
 			tmp_end++;
 			if (!(tmp_end < end && tmp_end[1] == delim)) {
@@ -1637,6 +1638,7 @@ cifs_parse_mount_options(const char *mountdata, const char *devname,
 					options = end;
 			}
 
+			kfree(vol->password);
 			/* Now build new password string */
 			temp_len = strlen(value);
 			vol->password = kzalloc(temp_len+1, GFP_KERNEL);
