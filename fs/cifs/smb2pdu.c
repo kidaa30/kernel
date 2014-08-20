@@ -381,6 +381,7 @@ SMB2_negotiate(const unsigned int xid, struct cifs_ses *ses)
 	if (rc != 0)
 		goto neg_exit;
 
+	ses->serverTime = le64_to_cpu(rsp->SystemTime);
 	cifs_dbg(FYI, "mode 0x%x\n", rsp->SecurityMode);
 
 	/* BB we may eventually want to match the negotiated vs. requested

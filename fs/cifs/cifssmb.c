@@ -584,6 +584,8 @@ CIFSSMBNegotiate(const unsigned int xid, struct cifs_ses *ses)
 	if (rc != 0)
 		goto neg_err_exit;
 
+	ses->serverTime = le32_to_cpu(pSMBr->SystemTimeLow);
+	ses->serverTime |= ((__u64)le32_to_cpu(pSMBr->SystemTimeHigh) << 32);
 	server->dialect = le16_to_cpu(pSMBr->DialectIndex);
 	cifs_dbg(FYI, "Dialect: %d\n", server->dialect);
 	/* Check wct = 1 error case */
