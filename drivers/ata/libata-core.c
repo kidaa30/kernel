@@ -4228,7 +4228,7 @@ static const struct ata_blacklist_entry ata_device_blacklist [] = {
 	{ "Micron_M500*",		NULL,	ATA_HORKAGE_NO_NCQ_TRIM, },
 	{ "Crucial_CT???M500SSD*",	NULL,	ATA_HORKAGE_NO_NCQ_TRIM, },
 	{ "Micron_M550*",		NULL,	ATA_HORKAGE_NO_NCQ_TRIM, },
-	{ "Crucial_CT???M550SSD*",	NULL,	ATA_HORKAGE_NO_NCQ_TRIM, },
+	{ "Crucial_CT*M550SSD*",	NULL,	ATA_HORKAGE_NO_NCQ_TRIM, },
 
 	/*
 	 * Some WD SATA-I drives spin up and down erratically when the link
@@ -6227,7 +6227,7 @@ int ata_host_activate(struct ata_host *host, int irq,
 	}
 
 	rc = devm_request_irq(host->dev, irq, irq_handler, irq_flags,
-			      dev_driver_string(host->dev), host);
+			      dev_name(host->dev), host);
 	if (rc)
 		return rc;
 
