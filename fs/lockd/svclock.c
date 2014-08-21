@@ -295,7 +295,8 @@ static void nlmsvc_free_block(struct kref *kref)
 	nlmsvc_freegrantargs(block->b_call);
 	nlmsvc_release_call(block->b_call);
 	nlm_release_file(block->b_file);
-	kfree(block->b_fl);
+	if (block->b_fl)
+		locks_free_lock(block->b_fl);
 	kfree(block);
 }
 
@@ -523,13 +524,13 @@ nlmsvc_testlock(struct svc_rqst *rqstp, struct nlm_file *file,
 	block = nlmsvc_lookup_block(file, lock);
 
 	if (block == NULL) {
-		struct file_lock *conf = kzalloc(sizeof(*conf), GFP_KERNEL);
+		struct file_lock *conf = locks_alloc_lock();
 
 		if (conf == NULL)
 			return nlm_granted;
 		block = nlmsvc_create_block(rqstp, host, file, lock, cookie);
 		if (block == NULL) {
-			kfree(conf);
+			locks_free_lock(conf);
 			return nlm_granted;
 		}
 		block->b_fl = conf;
@@ -586,6 +587,7 @@ conf_lock:
 	conflock->fl.fl_type = lock->fl.fl_type;
 	conflock->fl.fl_start = lock->fl.fl_start;
 	conflock->fl.fl_end = lock->fl.fl_end;
+	locks_release_private(&lock->fl);
 	ret = nlm_lck_denied;
 out:
 	if (block)
