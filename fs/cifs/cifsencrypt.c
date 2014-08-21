@@ -671,8 +671,8 @@ setup_ntlmv2_rsp(struct cifs_ses *ses, const struct nls_table *nls_cp)
 			(ses->auth_key.response + CIFS_SESS_KEY_SIZE);
 	ntlmv2->blob_signature = cpu_to_le32(0x00000101);
 	ntlmv2->reserved = 0;
-	/* Must be within 5 minutes of the server */
-	ntlmv2->time = cpu_to_le64(cifs_UnixTimeToNT(CURRENT_TIME));
+	/* Hack to get around windows extended security */
+	ntlmv2->time = cpu_to_le64(ses->serverTime);
 	get_random_bytes(&ntlmv2->client_chal, sizeof(ntlmv2->client_chal));
 	ntlmv2->reserved2 = 0;
 

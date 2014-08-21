@@ -381,6 +381,7 @@ SMB2_negotiate(const unsigned int xid, struct cifs_ses *ses)
 	if (rc != 0)
 		goto neg_exit;
 
+	ses->serverTime = le64_to_cpu(rsp->SystemTime);
 	cifs_dbg(FYI, "mode 0x%x\n", rsp->SecurityMode);
 
 	/* BB we may eventually want to match the negotiated vs. requested
@@ -530,7 +531,7 @@ SMB2_sess_setup(const unsigned int xid, struct cifs_ses *ses,
 	struct smb2_sess_setup_rsp *rsp = NULL;
 	struct kvec iov[2];
 	int rc = 0;
-	int resp_buftype;
+	int resp_buftype = CIFS_NO_BUFFER;
 	__le32 phase = NtLmNegotiate; /* NTLMSSP, if needed, is multistage */
 	struct TCP_Server_Info *server = ses->server;
 	u16 blob_length = 0;
@@ -1403,8 +1404,7 @@ SMB2_close(const unsigned int xid, struct cifs_tcon *tcon,
 	rsp = (struct smb2_close_rsp *)iov[0].iov_base;
 
 	if (rc != 0) {
-		if (tcon)
-			cifs_stats_fail_inc(tcon, SMB2_CLOSE_HE);
+		cifs_stats_fail_inc(tcon, SMB2_CLOSE_HE);
 		goto close_exit;
 	}
 

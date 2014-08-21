@@ -798,6 +798,8 @@ struct cifs_ses {
 	enum securityEnum sectype; /* what security flavor was specified? */
 	bool sign;		/* is signing required? */
 	bool need_reconnect:1; /* connection reset, uid now invalid */
+	__u64   serverTime;	/* Keeps track of server time sent by server
+				   during negotiate response */
 #ifdef CONFIG_CIFS_SMB2
 	__u16 session_flags;
 	char smb3signingkey[SMB3_SIGN_KEY_SIZE]; /* for signing smb3 packets */
