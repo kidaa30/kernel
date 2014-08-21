@@ -41,6 +41,11 @@ static int f2fs_vm_page_mkwrite(struct vm_area_struct *vma,
 
 	sb_start_pagefault(inode->i_sb);
 
+	/* force to convert with normal data indices */
+	err = f2fs_convert_inline_data(inode, MAX_INLINE_DATA + 1, page);
+	if (err)
+		goto out;
+
 	/* block allocation */
 	f2fs_lock_op(sbi);
 	set_new_dnode(&dn, inode, NULL, NULL, 0);
@@ -288,7 +293,7 @@ static loff_t f2fs_seek_block(struct file *file, loff_t offset, int whence)
 		if (err && err != -ENOENT) {
 			goto fail;
 		} else if (err == -ENOENT) {
-			/* direct node is not exist */
+			/* direct node does not exists */
 			if (whence == SEEK_DATA) {
 				pgofs = PGOFS_OF_NEXT_DNODE(pgofs,
 							F2FS_I(inode));
@@ -417,7 +422,7 @@ out:
 	f2fs_put_page(page, 1);
 }
 
-int truncate_blocks(struct inode *inode, u64 from)
+int truncate_blocks(struct inode *inode, u64 from, bool lock)
 {
 	struct f2fs_sb_info *sbi = F2FS_SB(inode->i_sb);
 	unsigned int blocksize = inode->i_sb->s_blocksize;
@@ -433,14 +438,16 @@ int truncate_blocks(struct inode *inode, u64 from)
 	free_from = (pgoff_t)
 			((from + blocksize - 1) >> (sbi->log_blocksize));
 
-	f2fs_lock_op(sbi);
+	if (lock)
+		f2fs_lock_op(sbi);
 
 	set_new_dnode(&dn, inode, NULL, NULL, 0);
 	err = get_dnode_of_data(&dn, free_from, LOOKUP_NODE);
 	if (err) {
 		if (err == -ENOENT)
 			goto free_next;
-		f2fs_unlock_op(sbi);
+		if (lock)
+			f2fs_unlock_op(sbi);
 		trace_f2fs_truncate_blocks_exit(inode, err);
 		return err;
 	}
@@ -458,7 +465,8 @@ int truncate_blocks(struct inode *inode, u64 from)
 	f2fs_put_dnode(&dn);
 free_next:
 	err = truncate_inode_blocks(inode, free_from);
-	f2fs_unlock_op(sbi);
+	if (lock)
+		f2fs_unlock_op(sbi);
 done:
 	/* lastly zero out the first data page */
 	truncate_partial_data_page(inode, from);
@@ -475,7 +483,7 @@ void f2fs_truncate(struct inode *inode)
 
 	trace_f2fs_truncate(inode);
 
-	if (!truncate_blocks(inode, i_size_read(inode))) {
+	if (!truncate_blocks(inode, i_size_read(inode), true)) {
 		inode->i_mtime = inode->i_ctime = CURRENT_TIME;
 		mark_inode_dirty(inode);
 	}
@@ -533,7 +541,7 @@ int f2fs_setattr(struct dentry *dentry, struct iattr *attr)
 
 	if ((attr->ia_valid & ATTR_SIZE) &&
 			attr->ia_size != i_size_read(inode)) {
-		err = f2fs_convert_inline_data(inode, attr->ia_size);
+		err = f2fs_convert_inline_data(inode, attr->ia_size, NULL);
 		if (err)
 			return err;
 
@@ -622,7 +630,7 @@ static int punch_hole(struct inode *inode, loff_t offset, loff_t len)
 	loff_t off_start, off_end;
 	int ret = 0;
 
-	ret = f2fs_convert_inline_data(inode, MAX_INLINE_DATA + 1);
+	ret = f2fs_convert_inline_data(inode, MAX_INLINE_DATA + 1, NULL);
 	if (ret)
 		return ret;
 
@@ -678,7 +686,7 @@ static int expand_inode_data(struct inode *inode, loff_t offset,
 	if (ret)
 		return ret;
 
-	ret = f2fs_convert_inline_data(inode, offset + len);
+	ret = f2fs_convert_inline_data(inode, offset + len, NULL);
 	if (ret)
 		return ret;
 
